@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { Button, Spinner } from "../components/ui";
 
 export default function Login() {
   const { user, loading, loginWithGoogle, logout } = useAuth();
@@ -15,7 +16,7 @@ export default function Login() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -27,28 +28,27 @@ export default function Login() {
           <p className="mb-4 text-lg">
             Signed in as <span className="font-semibold">{user.displayName || user.email}</span>
           </p>
-          <button
-            onClick={logout}
-            className="rounded-lg bg-gray-200 px-6 py-3 text-gray-800 hover:bg-gray-300"
-          >
+          <Button variant="secondary" onClick={logout}>
             Log out
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">FindIt</h1>
-        <p className="text-gray-500 mb-8">Campus Lost &amp; Found Tracker</p>
-        <button
-          onClick={loginWithGoogle}
-          className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 cursor-pointer"
-        >
-          Continue with Google
-        </button>
+    <div className="flex min-h-[80vh] items-center justify-center">
+      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-lg text-center">
+        <h1 className="text-3xl font-bold text-gray-900">FindIt</h1>
+        <p className="mt-2 text-gray-500">Campus Lost &amp; Found Tracker</p>
+        <div className="mt-8">
+          <Button size="lg" className="w-full" onClick={loginWithGoogle}>
+            Continue with Google
+          </Button>
+        </div>
+        <p className="mt-6 text-xs text-gray-400">
+          Sign in with your college Google account to report or claim items.
+        </p>
       </div>
     </div>
   );
