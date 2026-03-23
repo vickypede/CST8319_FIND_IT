@@ -9,6 +9,7 @@ import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
 import EditPost from "./pages/EditPost";
 import AdminDashboard from "./pages/AdminDashboard";
+import MyActivity from "./pages/MyActivity";
 
 export default function App() {
   return (
@@ -28,6 +29,14 @@ export default function App() {
             }
           />
           <Route path="/posts/:id" element={<PostDetail />} />
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <MyActivity />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/posts/:id/edit"
             element={
