@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import usePendingClaimCount from "../hooks/usePendingClaimCount";
+import ThemeToggle from "./ThemeToggle";
 import { Button } from "./ui";
 
 export default function Navbar() {
@@ -8,12 +9,13 @@ export default function Navbar() {
   const pendingCount = usePendingClaimCount();
 
   return (
-    <nav className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white/80 px-6 py-3 backdrop-blur-md">
+    <nav className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-200 bg-white/80 px-6 py-3 backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/80">
       <Link to="/" className="text-xl font-bold text-primary">
         FindIt
       </Link>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <ThemeToggle />
         {loading ? null : user ? (
           <>
             <Link to="/post/new">
@@ -28,7 +30,7 @@ export default function Navbar() {
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-5 w-5 text-gray-500 hover:text-primary transition-colors"
+                className="h-5 w-5 text-gray-500 transition-colors hover:text-primary dark:text-slate-400"
               >
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -44,7 +46,7 @@ export default function Navbar() {
                 <Button size="sm" variant="secondary">Admin</Button>
               </Link>
             )}
-            <span className="text-sm text-gray-500 hidden sm:inline">
+            <span className="hidden text-sm text-gray-500 dark:text-slate-400 sm:inline">
               {user.displayName || user.email}
             </span>
             <Button variant="ghost" size="sm" onClick={logout}>
