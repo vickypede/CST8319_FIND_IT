@@ -13,6 +13,9 @@ import { Spinner, FilterSelect, Input } from "../components/ui";
 import PostCard from "../components/PostCard";
 import type { Post } from "../types";
 
+/** Single query: `orderBy(createdAt)` + `limit` only — no composite indexes. Filters run client-side on this pool. */
+const FETCH_POOL = 500;
+
 const TYPE_OPTIONS = [
   { value: "", label: "All Types" },
   { value: "lost", label: "Lost" },
@@ -32,7 +35,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function Home() {
-  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [postPool, setPostPool] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [typeFilter, setTypeFilter] = useState("");
@@ -43,20 +46,13 @@ export default function Home() {
     async function fetchPosts() {
       setLoading(true);
       try {
-        const constraints: QueryConstraint[] = [];
-
-        if (typeFilter) {
-          constraints.push(where("type", "==", typeFilter));
-        }
-        if (categoryFilter) {
-          constraints.push(where("category", "==", categoryFilter));
-        }
-
-        constraints.push(orderBy("createdAt", "desc"), limit(40));
-
-        const q = query(collection(db, "posts"), ...constraints);
+        const q = query(
+          collection(db, "posts"),
+          orderBy("createdAt", "desc"),
+          limit(FETCH_POOL),
+        );
         const snap = await getDocs(q);
-        setAllPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Post));
+        setPostPool(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Post));
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       } finally {
@@ -64,17 +60,25 @@ export default function Home() {
       }
     }
     fetchPosts();
-  }, [typeFilter, categoryFilter]);
+  }, []);
 
   const filteredPosts = useMemo(() => {
-    if (!keyword.trim()) return allPosts;
-    const kw = keyword.toLowerCase();
-    return allPosts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(kw) ||
-        p.description.toLowerCase().includes(kw),
-    );
-  }, [allPosts, keyword]);
+    let list = postPool;
+    if (typeFilter) {
+      list = list.filter((p) => p.type === typeFilter);
+    }
+    if (categoryFilter) {
+      list = list.filter((p) => p.category === categoryFilter);
+    }
+    if (keyword.trim()) {
+      const kw = keyword.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(kw) || p.description.toLowerCase().includes(kw),
+      );
+    }
+    return list;
+  }, [postPool, typeFilter, categoryFilter, keyword]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
