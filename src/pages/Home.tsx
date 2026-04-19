@@ -1,17 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  type QueryConstraint,
-} from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { Spinner, Select, Input } from "../components/ui";
+import { Spinner, FilterSelect, Input } from "../components/ui";
 import PostCard from "../components/PostCard";
 import type { Post } from "../types";
+
+/** Single query: `orderBy(createdAt)` + `limit` only — no composite indexes. Filters run client-side on this pool. */
+const FETCH_POOL = 500;
 
 const TYPE_OPTIONS = [
   { value: "", label: "All Types" },
@@ -32,7 +27,7 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function Home() {
-  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [postPool, setPostPool] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [typeFilter, setTypeFilter] = useState("");
@@ -43,20 +38,13 @@ export default function Home() {
     async function fetchPosts() {
       setLoading(true);
       try {
-        const constraints: QueryConstraint[] = [];
-
-        if (typeFilter) {
-          constraints.push(where("type", "==", typeFilter));
-        }
-        if (categoryFilter) {
-          constraints.push(where("category", "==", categoryFilter));
-        }
-
-        constraints.push(orderBy("createdAt", "desc"), limit(40));
-
-        const q = query(collection(db, "posts"), ...constraints);
+        const q = query(
+          collection(db, "posts"),
+          orderBy("createdAt", "desc"),
+          limit(FETCH_POOL),
+        );
         const snap = await getDocs(q);
-        setAllPosts(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Post));
+        setPostPool(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Post));
       } catch (err) {
         console.error("Failed to fetch posts:", err);
       } finally {
@@ -64,42 +52,51 @@ export default function Home() {
       }
     }
     fetchPosts();
-  }, [typeFilter, categoryFilter]);
+  }, []);
 
   const filteredPosts = useMemo(() => {
-    if (!keyword.trim()) return allPosts;
-    const kw = keyword.toLowerCase();
-    return allPosts.filter(
-      (p) =>
-        p.title.toLowerCase().includes(kw) ||
-        p.description.toLowerCase().includes(kw),
-    );
-  }, [allPosts, keyword]);
+    let list = postPool;
+    if (typeFilter) {
+      list = list.filter((p) => p.type === typeFilter);
+    }
+    if (categoryFilter) {
+      list = list.filter((p) => p.category === categoryFilter);
+    }
+    if (keyword.trim()) {
+      const kw = keyword.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(kw) || p.description.toLowerCase().includes(kw),
+      );
+    }
+    return list;
+  }, [postPool, typeFilter, categoryFilter, keyword]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Campus Lost &amp; Found</h1>
-        <p className="mt-2 text-gray-500">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100">Campus Lost &amp; Found</h1>
+        <p className="mt-2 text-gray-500 dark:text-slate-400">
           Browse recent listings or create a new post to report a lost or found item.
         </p>
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <Select
+        <FilterSelect
           id="typeFilter"
           options={TYPE_OPTIONS}
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          onChange={setTypeFilter}
         />
-        <Select
+        <FilterSelect
           id="categoryFilter"
           options={CATEGORY_OPTIONS}
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          onChange={setCategoryFilter}
         />
         <Input
           id="keyword"
+          variant="toolbar"
           placeholder="Search by keyword..."
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
@@ -111,9 +108,9 @@ export default function Home() {
           <Spinner size="lg" />
         </div>
       ) : filteredPosts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 py-20 text-center">
-          <p className="text-gray-400 text-lg">No posts match your filters.</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="rounded-xl border border-dashed border-gray-300 py-20 text-center dark:border-slate-600">
+          <p className="text-lg text-gray-400 dark:text-slate-500">No posts match your filters.</p>
+          <p className="mt-1 text-sm text-gray-400 dark:text-slate-500">
             Try adjusting the filters or create a new listing!
           </p>
         </div>
